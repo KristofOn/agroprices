@@ -1,0 +1,15 @@
+{
+  "name": "agroprices-backend",
+  "version": "1.0.0",
+  "description": "Wekelijkse scraper voor runderkarkasprijzen (koeien, categorie DU/DE) van landbouwcijfers.vlaanderen.be",
+  "main": "scrape-beef.js",
+  "scripts": {
+    "scrape": "node scrape-beef.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

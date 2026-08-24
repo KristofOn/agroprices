@@ -1,0 +1,55 @@
+name: Scrape runderkarkasprijzen (koeien DU/DE)
+
+on:
+  schedule:
+    # Landbouwcijfers.vlaanderen.be verwacht de wekelijkse update "kop
+    # donderdag" (vroeg op donderdag). 10:00 UTC = 12:00 CEST / 11:00 CET,
+    # ruim na de verwachte publicatie.
+    - cron: '0 10 * * 4'
+    # Vrijdagochtend-vangnet voor het geval de donderdag-run mislukte of de
+    # publicatie die dag vertraagd was. Onschadelijk bij herhaling dankzij
+    # de "geen wijziging -> geen commit"-stap hieronder en de
+    # plausibiliteitscheck in het scraper-script zelf.
+    - cron: '0 7 * * 5'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install Chromium (Playwright)
+        working-directory: backend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run scraper
+        working-directory: backend
+        run: node scrape-beef.js
+
+      - name: Commit and push if beef.json changed
+        run: |
+          if git diff --quiet -- docs/beef.json; then
+            echo "Geen wijziging in docs/beef.json -- niets te committen."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/beef.json
+          git commit -m "chore: update runderkarkasprijzen (koeien DU/DE)"
+          git push

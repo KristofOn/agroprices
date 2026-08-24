@@ -1,0 +1,21 @@
+# Node / backend
+backend/node_modules/
+npm-debug.log*
+
+# Android / Gradle
+app/.gradle/
+app/local.properties
+app/.idea/
+app/**/build/
+app/captures/
+app/*.hprof
+app/.cxx/
+*.apk
+*.aab
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local Claude Code session state
+.claude/

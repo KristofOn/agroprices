@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Agroprijzen</string>
+    <string name="widget_description">Graan- en runderkarkasprijzen</string>
+
+    <string name="label_tarwe">Tarwe</string>
+    <string name="label_gerst">Gerst</string>
+    <string name="label_mais">Mais</string>
+    <string name="label_koeien_du">Koeien DU</string>
+    <string name="label_koeien_de">Koeien DE</string>
+
+    <string name="no_data">geen data</string>
+    <string name="price_unit_grain">€/T</string>
+    <string name="price_unit_beef">€/100kg</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#E61B1B1B</color>
+    <color name="widget_text_primary">#F5F5F5</color>
+    <color name="widget_text_secondary">#B0B0B0</color>
+
+    <color name="trend_up">#66BB6A</color>
+    <color name="trend_down">#EF5350</color>
+    <color name="trend_flat">#BDBDBD</color>
+    <color name="trend_no_data">#8A8A8A</color>
+</resources>
