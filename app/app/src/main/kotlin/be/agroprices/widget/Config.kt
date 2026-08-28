@@ -7,5 +7,5 @@ object Config {
      * once it exists (see README.md "GitHub-repo instellen"), e.g.:
      *   "https://<jouw-github-gebruikersnaam>.github.io/agroprices/beef.json"
      */
-    const val BEEF_JSON_URL = "https://REPLACE_ME.github.io/agroprices/beef.json"
+    const val BEEF_JSON_URL = "https://kristofon.github.io/agroprices/beef.json"
 }
