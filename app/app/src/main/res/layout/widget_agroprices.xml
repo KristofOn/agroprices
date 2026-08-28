@@ -97,7 +97,14 @@
             android:layout_marginStart="6dp" />
     </LinearLayout>
 
-    <View
+    <!--
+        A plain View is not on RemoteViews' inflatable-view allowlist and
+        throws at runtime on a real widget host (only LinearLayout,
+        FrameLayout, RelativeLayout, GridLayout and specific widget classes
+        are supported), so a zero-content LinearLayout with a background
+        color is used as the RemoteViews-safe divider instead.
+    -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginTop="4dp"
