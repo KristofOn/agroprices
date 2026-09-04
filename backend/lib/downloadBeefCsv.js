@@ -65,19 +65,33 @@ async function downloadBeefCsv() {
     // extra time to finish initializing before a click actually produces a
     // download -- there is no reliable DOM signal to wait on instead, so a
     // fixed delay is used here (confirmed necessary during manual testing).
-    await page.waitForTimeout(15000);
+    await page.waitForTimeout(25000);
 
+    // GitHub Actions runners are slower/more loaded than a dev machine, and
+    // these runs land right at the weekly publish window when the source
+    // server sees the most traffic -- both push Spotfire's init time past
+    // the fixed delay above often enough that a single click+wait isn't
+    // reliable there even though it is locally. Retry the click a few times
+    // before giving up, since the button itself stays clickable throughout.
     let download;
-    try {
-      [download] = await Promise.all([
-        page.waitForEvent('download', { timeout: 30000 }),
-        downloadBtn.click(),
-      ]);
-    } catch (err) {
+    let lastErr;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        [download] = await Promise.all([
+          page.waitForEvent('download', { timeout: 45000 }),
+          downloadBtn.click(),
+        ]);
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    if (lastErr) {
       const debugPath = path.join(os.tmpdir(), `agroprices-debug-${Date.now()}.png`);
       await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
-      err.message += ` (debug screenshot: ${debugPath})`;
-      throw err;
+      lastErr.message += ` (debug screenshot: ${debugPath})`;
+      throw lastErr;
     }
 
     const tmpPath = path.join(os.tmpdir(), `agroprices-beef-${Date.now()}.csv`);
