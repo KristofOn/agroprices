@@ -32,12 +32,25 @@ const KOEIEN_CONTAINER_ID = 'doc_hestocom';
  */
 async function downloadBeefCsv() {
   const browser = await chromium.launch({ headless: true });
+  // Diagnostics only: if the CI environment behaves differently than a dev
+  // machine (e.g. the source site treats datacenter IPs differently), these
+  // let us see what the page actually looked like at failure time instead
+  // of guessing blind. Harmless on the success path -- nothing is written
+  // unless the run fails, see the catch block below.
+  const debugEvents = [];
   try {
     const context = await browser.newContext({
       viewport: { width: 1400, height: 1400 },
       acceptDownloads: true,
     });
     const page = await context.newPage();
+    page.on('console', (msg) => debugEvents.push(`[console.${msg.type()}] ${msg.text()}`));
+    page.on('requestfailed', (req) =>
+      debugEvents.push(`[requestfailed] ${req.url()} -- ${req.failure()?.errorText}`)
+    );
+    page.on('response', (res) => {
+      if (res.status() >= 400) debugEvents.push(`[response ${res.status()}] ${res.url()}`);
+    });
 
     await page.goto(PAGE_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
@@ -88,9 +101,19 @@ async function downloadBeefCsv() {
       }
     }
     if (lastErr) {
-      const debugPath = path.join(os.tmpdir(), `agroprices-debug-${Date.now()}.png`);
-      await page.screenshot({ path: debugPath, fullPage: true }).catch(() => {});
-      lastErr.message += ` (debug screenshot: ${debugPath})`;
+      const debugDir = process.env.BEEF_DEBUG_DIR || os.tmpdir();
+      fs.mkdirSync(debugDir, { recursive: true });
+      const stamp = Date.now();
+      const screenshotPath = path.join(debugDir, `agroprices-debug-${stamp}.png`);
+      const htmlPath = path.join(debugDir, `agroprices-debug-${stamp}.html`);
+      const eventsPath = path.join(debugDir, `agroprices-debug-${stamp}.log`);
+      await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
+      await page
+        .content()
+        .then((html) => fs.writeFileSync(htmlPath, html, 'utf-8'))
+        .catch(() => {});
+      fs.writeFileSync(eventsPath, debugEvents.join('\n'), 'utf-8');
+      lastErr.message += ` (debug output: ${screenshotPath}, ${htmlPath}, ${eventsPath})`;
       throw lastErr;
     }
 

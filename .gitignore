@@ -1,5 +1,6 @@
 # Node / backend
 backend/node_modules/
+backend/debug-output/
 npm-debug.log*
 
 # Android / Gradle

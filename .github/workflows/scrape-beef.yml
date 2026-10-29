@@ -40,7 +40,18 @@ jobs:
 
       - name: Run scraper
         working-directory: backend
+        env:
+          BEEF_DEBUG_DIR: ${{ github.workspace }}/backend/debug-output
         run: node scrape-beef.js
+
+      - name: Upload debug output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: beef-scrape-debug
+          path: backend/debug-output
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Commit and push if beef.json changed
         run: |
