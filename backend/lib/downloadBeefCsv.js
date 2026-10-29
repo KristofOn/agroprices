@@ -16,6 +16,9 @@ const PAGE_URL = 'https://landbouwcijfers.vlaanderen.be/marktinformatie/rundvee/
 // re-verify (inspect data-spotfire-container-id on the koeien block's
 // "Download data" link).
 const KOEIEN_CONTAINER_ID = 'doc_hestocom';
+// The div the Spotfire iframe actually gets injected into uses the same id
+// minus the "doc_" prefix (confirmed in the rendered page HTML).
+const KOEIEN_DIV_ID = 'hestocom';
 
 /**
  * Drives a headless browser to the public Vlaanderen dashboard and clicks
@@ -32,11 +35,9 @@ const KOEIEN_CONTAINER_ID = 'doc_hestocom';
  */
 async function downloadBeefCsv() {
   const browser = await chromium.launch({ headless: true });
-  // Diagnostics only: if the CI environment behaves differently than a dev
-  // machine (e.g. the source site treats datacenter IPs differently), these
-  // let us see what the page actually looked like at failure time instead
-  // of guessing blind. Harmless on the success path -- nothing is written
-  // unless the run fails, see the catch block below.
+  // Diagnostics only: captures what the page actually looked like if a run
+  // fails, instead of guessing blind. Harmless on the success path --
+  // nothing is written unless the run fails, see the catch block below.
   const debugEvents = [];
   try {
     const context = await browser.newContext({
@@ -57,8 +58,10 @@ async function downloadBeefCsv() {
     // The cookie-consent dialog overlays the download buttons and blocks
     // clicks until dismissed. Reject non-essential cookies (least data
     // shared) rather than accepting -- this is a public data page and no
-    // cookie-dependent feature is needed here.
-    const rejectCookiesBtn = page.getByRole('button', { name: /weiger alle/i });
+    // cookie-dependent feature is needed here. Match on "weiger" alone
+    // (not "weiger alle") since the Cookiebot banner's actual label is
+    // just "Weigeren".
+    const rejectCookiesBtn = page.getByRole('button', { name: /weiger/i });
     try {
       await rejectCookiesBtn.waitFor({ state: 'visible', timeout: 15000 });
       await rejectCookiesBtn.click();
@@ -73,25 +76,30 @@ async function downloadBeefCsv() {
     );
     await downloadBtn.waitFor({ state: 'visible', timeout: 45000 });
 
-    // The button exists in the DOM as soon as the page shell loads, but the
-    // embedded Spotfire document (loaded in a cross-origin iframe) needs
-    // extra time to finish initializing before a click actually produces a
-    // download -- there is no reliable DOM signal to wait on instead, so a
-    // fixed delay is used here (confirmed necessary during manual testing).
-    await page.waitForTimeout(25000);
+    // The button exists in the DOM (as a dumb "#hestocom" placeholder div)
+    // as soon as the page shell loads, well before the embedded Spotfire
+    // document (a cross-origin iframe injected by the page's own JS) has
+    // actually loaded into it. Clicking before that iframe exists produces
+    // no download at all -- confirmed via a CI failure where the debug
+    // screenshot/HTML showed this exact chart's container still empty
+    // after a blind fixed wait, while sibling charts above it on the page
+    // had already loaded fine. Wait for the real readiness signal (the
+    // iframe's presence) instead of guessing a delay.
+    await page.locator(`#${KOEIEN_DIV_ID} iframe`).waitFor({ state: 'attached', timeout: 90000 });
+    // The iframe tag appearing doesn't mean Spotfire has finished rendering
+    // inside it yet -- give it a short settle buffer before clicking.
+    await page.waitForTimeout(5000);
 
-    // GitHub Actions runners are slower/more loaded than a dev machine, and
-    // these runs land right at the weekly publish window when the source
-    // server sees the most traffic -- both push Spotfire's init time past
-    // the fixed delay above often enough that a single click+wait isn't
-    // reliable there even though it is locally. Retry the click a few times
-    // before giving up, since the button itself stays clickable throughout.
+    // Loading several Spotfire documents on one page appears to be flaky
+    // under load (this is the third of four), so retry the click a few
+    // times before giving up, since the button itself stays clickable
+    // throughout.
     let download;
     let lastErr;
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         [download] = await Promise.all([
-          page.waitForEvent('download', { timeout: 45000 }),
+          page.waitForEvent('download', { timeout: 30000 }),
           downloadBtn.click(),
         ]);
         lastErr = null;
