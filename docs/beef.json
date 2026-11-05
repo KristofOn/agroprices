@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-10-30T13:53:57.582Z",
-  "weekLabel": "week 43 2026",
-  "previousWeekLabel": "week 42 2026",
+  "generatedAt": "2026-11-05T17:46:08.213Z",
+  "weekLabel": "week 44 2026",
+  "previousWeekLabel": "week 43 2026",
   "DU": {
-    "price": 737.93,
-    "previousPrice": 743.04
+    "price": 738.44,
+    "previousPrice": 737.93
   },
   "DE": {
-    "price": 892.2,
-    "previousPrice": 888.28
+    "price": 883.23,
+    "previousPrice": 892.2
   }
 }
